@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ping Win</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a1a'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%2300d4ff' filter='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%2300eeff' stroke-width='1.5' opacity='0.8'/%3E%3Cellipse cx='13' cy='13' rx='3' ry='2' fill='white' opacity='0.25' transform='rotate(-30 13 13)'/%3E%3Cfilter id='g'%3E%3CfeGaussianBlur stdDeviation='2' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --neon-blue: #00d4ff;
+      --neon-pink: #ff006e;
+      --neon-green: #39ff14;
+      --neon-gold: #ffd700;
+      --bg-dark: #060614;
+      --bg-mid: #0d0d2b;
+      --glow-blue: 0 0 20px #00d4ff88, 0 0 60px #00d4ff44;
+      --glow-pink: 0 0 20px #ff006e88, 0 0 60px #ff006e44;
+      --glow-green: 0 0 20px #39ff1488, 0 0 60px #39ff1444;
+    }
+
+    body {
+      background: var(--bg-dark);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridMove 20s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes gridMove {
+      0% {
+        background-position: 0 0;
+      }
+
+      100% {
+        background-position: 60px 60px;
+      }
+    }
+
+    .game-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 800px;
+    }
+
+    .player-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      min-width: 120px;
+    }
+
+    .player-label.left {
+      color: var(--neon-blue);
+      text-shadow: var(--glow-blue);
+    }
+
+    .player-label.right {
+      color: var(--neon-pink);
+      text-shadow: var(--glow-pink);
+    }
+
+    .player-label.right.ai {
+      color: var(--neon-pink);
+      text-shadow: var(--glow-pink);
+    }
+
+    .player-label.right {
+      text-align: right;
+    }
+
+    .title {
+      font-family: 'Orbitron', monospace;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      background: linear-gradient(90deg, var(--neon-blue), #fff, var(--neon-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Scoreboard ── */
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      font-family: 'Orbitron', monospace;
+    }
+
+    .score {
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1;
+      transition: transform 0.15s ease;
+    }
+
+    .score.left {
+      color: var(--neon-blue);
+      text-shadow: var(--glow-blue);
+    }
+
+    .score.right {
+      color: var(--neon-pink);
+      text-shadow: var(--glow-pink);
+    }
+
+    .score.right.ai {
+      color: var(--neon-pink);
+      text-shadow: var(--glow-pink);
+    }
+
+    .score.pop {
+      transform: scale(1.35);
+    }
+
+    .score-divider {
+      font-size: 48px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ── Canvas ── */
+    .canvas-container {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.08),
+        0 0 60px rgba(0, 212, 255, 0.15),
+        0 0 120px rgba(255, 0, 110, 0.1);
+    }
+
+    canvas {
+      display: block;
+      background: transparent;
+    }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: rgba(6, 6, 20, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      transition: opacity 0.4s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay h2 {
+      font-family: 'Orbitron', monospace;
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-align: center;
+      background: linear-gradient(90deg, var(--neon-blue), #fff, var(--neon-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .overlay p {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 14px;
+      letter-spacing: 1.5px;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .overlay-subtitle {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+      margin-top: -8px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 14px 40px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+      color: #fff;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.4), 0 0 60px rgba(255, 0, 110, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.6), 0 0 80px rgba(255, 0, 110, 0.3);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ── Mode selection buttons ── */
+    .mode-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .mode-btn {
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 16px 28px;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.6);
+      transition: all 0.25s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 130px;
+    }
+
+    .mode-btn .mode-icon {
+      font-size: 28px;
+    }
+
+    .mode-btn:hover,
+    .mode-btn.active {
+      color: #fff;
+      border-color: var(--neon-blue);
+      background: rgba(0, 212, 255, 0.1);
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* ── Difficulty buttons ── */
+    .diff-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .diff-btn {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.5);
+      transition: all 0.2s;
+    }
+
+    .diff-btn[data-diff="easy"] {
+      --dc: #39ff14;
+    }
+
+    .diff-btn[data-diff="medium"] {
+      --dc: #ffd700;
+    }
+
+    .diff-btn[data-diff="hard"] {
+      --dc: #ff006e;
+    }
+
+    .diff-btn:hover {
+      border-color: var(--dc);
+      color: var(--dc);
+    }
+
+    .diff-btn.active {
+      border-color: var(--dc);
+      color: var(--dc);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 16px var(--dc, #fff);
+    }
+
+    .diff-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .diff-section .label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+    }
+
+    /* ── AI badge ── */
+    .ai-badge {
+      display: inline-block;
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(57, 255, 20, 0.15);
+      border: 1px solid rgba(57, 255, 20, 0.4);
+      color: var(--neon-green);
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* ── Controls footer ── */
+    .controls {
+      display: flex;
+      gap: 40px;
+      opacity: 0.4;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: #aaa;
+    }
+
+    .controls span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── In-game restart button ── */
+    .ingame-btn {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 7px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.4);
+      transition: all 0.2s;
+    }
+
+    .ingame-btn:hover {
+      border-color: var(--neon-blue);
+      color: var(--neon-blue);
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.3);
+    }
+
+    .ingame-btn:focus,
+    .btn:focus,
+    .mode-btn:focus,
+    .diff-btn:focus {
+      outline: none;
+    }
+
+    .ingame-btn.hidden {
+      display: none;
+    }
+
+    .ingame-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ingame-bar.hidden {
+      display: none;
+    }
+
+    /* ── Volume slider ── */
+    .vol-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.65;
+      transition: opacity 0.2s;
+    }
+
+    .vol-wrap:hover {
+      opacity: 1;
+    }
+
+    .vol-icon {
+      font-size: 14px;
+    }
+
+    .vol-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--neon-blue);
+      box-shadow: 0 0 8px var(--neon-blue);
+      cursor: pointer;
+    }
+
+    .vol-slider::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--neon-blue);
+      box-shadow: 0 0 8px var(--neon-blue);
+      border: none;
+      cursor: pointer;
+    }
+
+    kbd {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #ddd;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="game-wrapper">
+
+    <header>
+      <div class="player-label left" id="labelLeft">Игрок 1</div>
+      <div class="title">PING&nbsp;PONG</div>
+      <div class="player-label right" id="labelRight">Игрок 2</div>
+    </header>
+
+    <div class="scoreboard">
+      <div class="score left" id="scoreLeft">0</div>
+      <div class="score-divider">:</div>
+      <div class="score right" id="scoreRight">0</div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+      <!-- ── Menu screen ── -->
+      <div class="overlay" id="menuScreen">
+        <h2>PING PONG</h2>
+        <div class="overlay-subtitle">Выберите режим игры</div>
+
+        <div class="mode-row">
+          <button class="mode-btn" id="modeSingle">
+            <span class="mode-icon">🤖</span>
+            Один игрок
+          </button>
+          <button class="mode-btn" id="modeMulti">
+            <span class="mode-icon">👥</span>
+            Два игрока
+          </button>
+        </div>
+
+        <!-- Difficulty (shown only for single player) -->
+        <div class="diff-section" id="diffSection" style="display:none">
+          <div class="label">Сложность</div>
+          <div class="diff-row">
+            <button class="diff-btn" data-diff="easy">Легко</button>
+            <button class="diff-btn active" data-diff="medium">Средне</button>
+            <button class="diff-btn" data-diff="hard">Сложно</button>
+          </div>
+        </div>
+
+        <button class="btn" id="menuStartBtn">НАЧАТЬ ИГРУ</button>
+      </div>
+
+      <!-- ── Win screen ── -->
+      <div class="overlay hidden" id="winScreen">
+        <h2 id="winMessage">ПОБЕДИТЕЛЬ!</h2>
+        <p id="winSub"></p>
+        <div class="mode-row" style="gap:12px">
+          <button class="btn" id="restartBtn" style="padding:12px 28px;font-size:11px">СНОВА</button>
+          <button class="btn" id="menuBtn"
+            style="padding:12px 28px;font-size:11px;background:rgba(255,255,255,0.1);box-shadow:none;border:1px solid rgba(255,255,255,0.15)">МЕНЮ</button>
+        </div>
+      </div>
+
+      <!-- ── Pause screen ── -->
+      <div class="overlay hidden" id="pauseScreen">
+        <h2>ПАУЗА</h2>
+        <p>Нажмите <kbd>P</kbd> или <kbd>Esc</kbd> для продолжения</p>
+      </div>
+    </div>
+
+    <div class="controls" id="controlsBar">
+      <span><kbd>W</kbd><kbd>S</kbd> — Игрок 1</span>
+      <span><kbd>P</kbd> / <kbd>Esc</kbd> — Пауза</span>
+      <span><kbd>↑</kbd><kbd>↓</kbd> — Игрок 2</span>
+    </div>
+
+    <div class="ingame-bar hidden" id="inGameBar">
+      <button class="ingame-btn" id="inGameRestartBtn">↺ Сбросить</button>
+      <button class="ingame-btn" id="inGameMenuBtn">← Меню</button>
+      <button class="ingame-btn" id="inGamePauseBtn">⏸ Пауза</button>
+    </div>
+
+    <!-- Volume control (always visible once game started, same row as bar) -->
+    <div class="ingame-bar hidden" id="volWrap">
+      <span class="vol-icon">🎵</span>
+      <input class="vol-slider" id="volSlider" type="range" min="0" max="1" step="0.01" value="0.5">
+    </div>
+
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════
+    //  Constants
+    // ══════════════════════════════════════════════
+    const W = 800, H = 500;
+    const PADDLE_W = 12, PADDLE_H = 90, PADDLE_MARGIN = 24;
+    const BALL_R = 9;
+    const BALL_SPEED_INIT = 8;
+    const BALL_SPEED_MAX = 30;
+    const BALL_ACCEL_STEP = 1.0; // speed added on every 2nd hit
+    const PADDLE_SPEED = 7;
+    const WIN_SCORE = 7;
+
+    // AI difficulty config: speed multiplier, reaction error, prediction lookahead
+    const AI_CONFIG = {
+      easy: { speed: 3.2, error: 55, lookahead: 0.35 },
+      medium: { speed: 5.2, error: 22, lookahead: 0.65 },
+      hard: { speed: 7.5, error: 6, lookahead: 0.92 },
+    };
+
+    // ══════════════════════════════════════════════
+    //  DOM refs
+    // ══════════════════════════════════════════════
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreLeftEl = document.getElementById('scoreLeft');
+    const scoreRightEl = document.getElementById('scoreRight');
+    const labelLeft = document.getElementById('labelLeft');
+    const labelRight = document.getElementById('labelRight');
+    const menuScreen = document.getElementById('menuScreen');
+    const winScreen = document.getElementById('winScreen');
+    const pauseScreen = document.getElementById('pauseScreen');
+    const winMessage = document.getElementById('winMessage');
+    const winSub = document.getElementById('winSub');
+    const diffSection = document.getElementById('diffSection');
+    const controlsBar = document.getElementById('controlsBar');
+    const inGameBar = document.getElementById('inGameBar');
+    const volWrap = document.getElementById('volWrap');
+    const volSlider = document.getElementById('volSlider');
+
+    // Live volume control — throttled to one update per animation frame
+    let _volRaf = null;
+    volSlider.addEventListener('input', () => {
+      if (_volRaf) return;
+      _volRaf = requestAnimationFrame(() => {
+        if (musicGain) {
+          const ctx = getAudioCtx();
+          // cancelAndHoldAtTime prevents stacked automation queue buildup
+          try { musicGain.gain.cancelAndHoldAtTime(ctx.currentTime); } catch (e) {
+            musicGain.gain.cancelScheduledValues(ctx.currentTime);
+          }
+          musicGain.gain.value = parseFloat(volSlider.value);
+        }
+        _volRaf = null;
+      });
+    });
+
+    // ══════════════════════════════════════════════
+    //  Game state
+    // ══════════════════════════════════════════════
+    let gameMode = null;  // 'single' | 'multi'
+    let difficulty = 'medium';
+    let state = 'menu'; // menu | playing | paused | win
+    let scores = [0, 0];
+    let keys = {};
+    let paddle1, paddle2, ball;
+    let particles = [];
+    let animId;
+
+    // AI internal state
+    let aiTargetY = H / 2;
+    let aiError = 0; // current positional error offset
+
+    // ══════════════════════════════════════════════
+    //  Menu wiring
+    // ══════════════════════════════════════════════
+    document.getElementById('modeSingle').addEventListener('click', () => selectMode('single'));
+    document.getElementById('modeMulti').addEventListener('click', () => selectMode('multi'));
+    document.getElementById('menuStartBtn').addEventListener('click', startGame);
+    document.getElementById('restartBtn').addEventListener('click', restartGame);
+    document.getElementById('menuBtn').addEventListener('click', goMenu);
+    document.getElementById('inGameRestartBtn').addEventListener('click', restartGame);
+    document.getElementById('inGameMenuBtn').addEventListener('click', goMenu);
+    document.getElementById('inGamePauseBtn').addEventListener('click', () => {
+      if (state === 'playing') pause();
+      else if (state === 'paused') resume();
+    });
+
+    // Play a click sound on any button press
+    document.addEventListener('click', e => {
+      if (e.target.closest('button')) soundClick();
+    });
+
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        difficulty = btn.dataset.diff;
+      });
+    });
+
+    function selectMode(mode) {
+      gameMode = mode;
+      document.getElementById('modeSingle').classList.toggle('active', mode === 'single');
+      document.getElementById('modeMulti').classList.toggle('active', mode === 'multi');
+      diffSection.style.display = (mode === 'single') ? 'flex' : 'none';
+      if (mode === 'single') {
+        labelRight.textContent = 'Компьютер';
+        labelRight.classList.add('ai');
+      } else {
+        labelRight.textContent = 'Игрок 2';
+        labelRight.classList.remove('ai');
+      }
+    }
+    // Default selection
+    selectMode('single');
+
+    // ══════════════════════════════════════════════
+    //  Input
+    // ══════════════════════════════════════════════
+    document.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if ((e.code === 'KeyP' || e.code === 'Escape') && state === 'playing') pause();
+      else if ((e.code === 'KeyP' || e.code === 'Escape') && state === 'paused') resume();
+      if (['ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
+    });
+    document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    // ══════════════════════════════════════════════
+    //  Init
+    // ══════════════════════════════════════════════
+    function makePaddle(side) {
+      const x = side === 'left' ? PADDLE_MARGIN : W - PADDLE_MARGIN - PADDLE_W;
+      const color = side === 'left' ? '#00d4ff'
+        : '#ff006e';
+      return { x, y: H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H, color };
+    }
+
+    function makeBall() {
+      const angle = (Math.random() * 60 - 30) * Math.PI / 180;
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      return {
+        x: W / 2, y: H / 2,
+        vx: Math.cos(angle) * BALL_SPEED_INIT * dir,
+        vy: Math.sin(angle) * BALL_SPEED_INIT,
+        speed: BALL_SPEED_INIT,
+        hitCount: 0,   // total hits this rally
+        trail: []
+      };
+    }
+
+    function initGame() {
+      paddle1 = makePaddle('left');
+      paddle2 = makePaddle('right');
+      ball = makeBall();
+      particles = [];
+      aiTargetY = H / 2;
+      aiError = 0;
+    }
+
+    // ══════════════════════════════════════════════
+    //  Audio (Web Audio API — no external files)
+    // ══════════════════════════════════════════════
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playBeep({ freq = 440, type = 'square', duration = 0.06, gain = 0.18, sweep = 0 } = {}) {
+      try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.connect(env);
+        env.connect(ctx.destination);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        if (sweep) osc.frequency.exponentialRampToValueAtTime(sweep, ctx.currentTime + duration);
+        env.gain.setValueAtTime(gain, ctx.currentTime);
+        env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) { /* silently ignore if AudioContext unavailable */ }
+    }
+
+    // Paddle hit — crisp high blip
+    function soundPaddleHit() { playBeep({ freq: 520, type: 'square', duration: 0.055, gain: 0.2 }); }
+    // Wall bounce — short percussive tick
+    function soundWall() { playBeep({ freq: 300, type: 'triangle', duration: 0.08, gain: 0.28, sweep: 180 }); }
+    // Goal / score — descending sweep
+    function soundScore() { playBeep({ freq: 320, type: 'sine', duration: 0.28, gain: 0.22, sweep: 80 }); }
+    // UI button click — neutral soft tick
+    function soundClick() { playBeep({ freq: 680, type: 'sine', duration: 0.045, gain: 0.10, sweep: 520 }); }
+
+    // Victory fanfare — ascending arpeggio
+    function soundWin() {
+      const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+      notes.forEach((freq, i) => {
+        setTimeout(() => playBeep({ freq, type: 'square', duration: 0.13, gain: 0.18 }), i * 100);
+      });
+      setTimeout(() => playBeep({ freq: 1047, type: 'square', duration: 0.35, gain: 0.22 }), 420);
+    }
+
+    // Defeat — descending sad trombone
+    function soundLose() {
+      const notes = [349, 311, 277, 233]; // F4 Eb4 Db4 Bb3
+      notes.forEach((freq, i) => {
+        setTimeout(() => playBeep({ freq, type: 'sawtooth', duration: 0.18, gain: 0.14 }), i * 130);
+      });
+    }
+
+    // ══════════════════════════════════════════════
+    //  Chiptune Music Sequencer  (64-step, 4 bars)
+    // ══════════════════════════════════════════════
+    const MUSIC_BPM = 124;
+    const MUSIC_STEP = (60 / MUSIC_BPM) / 4;  // 16th-note in seconds
+    const MUSIC_LEN = 64;
+
+    const _ = 0;
+    const N = {
+      C3: 130.81, Eb3: 155.56, F3: 174.61, G3: 196.00, Ab3: 207.65, Bb3: 233.08,
+      C4: 261.63, Eb4: 311.13, F4: 349.23, G4: 392.00, Ab4: 415.30, Bb4: 466.16,
+      C5: 523.25, D5: 587.33, Eb5: 622.25, F5: 698.46, G5: 783.99, Ab5: 830.61, Bb5: 932.33
+    };
+
+    // ── 4-bar melody (square lead) ──────────────────────────────────────────
+    // Bar 1-2 : main theme
+    // Bar 3   : higher variation
+    // Bar 4   : descend & resolve back to C (loop seam is invisible)
+    const MELODY = [
+      // Bar 1
+      N.C5, _, N.Eb5, _, N.G5, _, _, N.F5,
+      N.Eb5, _, N.C5, _, _, N.G4, N.Bb4, _,
+      // Bar 2
+      N.C5, _, N.Eb5, _, N.G5, N.Bb5, _, N.Ab5,
+      N.G5, _, N.F5, _, N.Eb5, _, N.D5, _,
+      // Bar 3  – octave lift
+      N.C5, _, N.G5, _, N.Eb5, _, N.C5, _,
+      N.Bb4, _, N.G4, _, N.Bb4, _, N.C5, _,
+      // Bar 4  – descend back to root (no gap at seam)
+      N.F4, _, N.Ab4, _, N.Bb4, _, N.C5, _,
+      N.Bb4, _, N.G4, _, N.Eb4, _, N.C4, _,
+    ];
+
+    // ── 4-bar bass (triangle) ────────────────────────────────────────────────
+    const BASS = [
+      // Bar 1
+      N.C3, _, _, _, N.G3, _, _, _, N.Bb3, _, _, _, N.F3, _, _, _,
+      // Bar 2
+      N.C3, _, _, _, N.Ab3, _, _, _, N.G3, _, _, _, N.Eb3, _, N.F3, _,
+      // Bar 3
+      N.C3, _, _, _, N.Eb3, _, _, _, N.F3, _, _, _, N.G3, _, _, _,
+      // Bar 4  – resolves to C3
+      N.F3, _, _, _, N.Bb3, _, _, _, N.G3, _, _, _, N.C3, _, _, _,
+    ];
+
+    // ── Drums (64 steps, 4-bar) ───────────────────────────────────────────────
+    // Kick on every beat; snare on 2 & 4; closed hihat on 8ths
+    const KICK = Array.from({ length: 64 }, (_, i) => i % 4 === 0 ? 1 : 0);
+    const SNARE = Array.from({ length: 64 }, (_, i) => i % 16 === 4 || i % 16 === 12 ? 1 : 0);
+    const HIHAT = Array.from({ length: 64 }, (_, i) => i % 2 === 0 ? 1 : 0);
+
+    // ── Cached noise buffers (allocated once) ────────────────────────────────
+    let _snareBuf = null, _hihatBuf = null;
+    function getSnareBuf(ctx) {
+      if (_snareBuf) return _snareBuf;
+      const len = Math.ceil(ctx.sampleRate * 0.1);
+      _snareBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = _snareBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      return _snareBuf;
+    }
+    function getHihatBuf(ctx) {
+      if (_hihatBuf) return _hihatBuf;
+      const len = Math.ceil(ctx.sampleRate * 0.035);
+      _hihatBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = _hihatBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      return _hihatBuf;
+    }
+
+    let musicGain = null, musicStep = 0, musicNextT = 0, musicTimer = null;
+
+    function mNote(freq, type, dur, gain, t) {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator(), env = ctx.createGain();
+      osc.connect(env); env.connect(musicGain);
+      osc.type = type; osc.frequency.value = freq;
+      env.gain.setValueAtTime(gain, t);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.start(t); osc.stop(t + dur + 0.01);
+    }
+
+    function mKick(t) {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator(), env = ctx.createGain();
+      osc.connect(env); env.connect(musicGain);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(160, t);
+      osc.frequency.exponentialRampToValueAtTime(38, t + 0.14);
+      env.gain.setValueAtTime(0.55, t);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      osc.start(t); osc.stop(t + 0.27);
+    }
+
+    function mSnare(t) {
+      const ctx = getAudioCtx();
+      const src = ctx.createBufferSource(), flt = ctx.createBiquadFilter(), env = ctx.createGain();
+      src.buffer = getSnareBuf(ctx);
+      flt.type = 'highpass'; flt.frequency.value = 1600;
+      src.connect(flt); flt.connect(env); env.connect(musicGain);
+      env.gain.setValueAtTime(0.20, t);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      src.start(t); src.stop(t + 0.1);
+    }
+
+    function mHihat(t) {
+      const ctx = getAudioCtx();
+      const src = ctx.createBufferSource(), flt = ctx.createBiquadFilter(), env = ctx.createGain();
+      src.buffer = getHihatBuf(ctx);
+      flt.type = 'highpass'; flt.frequency.value = 9000;
+      src.connect(flt); flt.connect(env); env.connect(musicGain);
+      env.gain.setValueAtTime(0.06, t);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + 0.032);
+      src.start(t); src.stop(t + 0.04);
+    }
+
+    function mSchedule() {
+      const ctx = getAudioCtx();
+      const ahead = 0.25;           // generous lookahead — prevents rhythm gaps
+      while (musicNextT < ctx.currentTime + ahead) {
+        const s = musicStep % MUSIC_LEN;
+        if (MELODY[s]) mNote(MELODY[s], 'square', MUSIC_STEP * 1.55, 0.07, musicNextT);
+        if (BASS[s]) mNote(BASS[s], 'triangle', MUSIC_STEP * 3.8, 0.14, musicNextT);
+        if (KICK[s]) mKick(musicNextT);
+        if (SNARE[s]) mSnare(musicNextT);
+        if (HIHAT[s]) mHihat(musicNextT);
+        musicNextT += MUSIC_STEP;
+        musicStep++;
+      }
+      musicTimer = setTimeout(mSchedule, 20);  // poll every 20ms (was 40ms)
+    }
+
+    function startMusic() {
+      if (musicTimer) return;
+      const ctx = getAudioCtx();
+      musicGain = ctx.createGain();
+      musicGain.gain.value = parseFloat(volSlider.value);
+      musicGain.connect(ctx.destination);
+      musicStep = 0;
+      musicNextT = ctx.currentTime + 0.05;
+      mSchedule();
+    }
+
+    function stopMusic(fade = 0.4) {
+      clearTimeout(musicTimer); musicTimer = null;
+      if (musicGain) {
+        const ctx = getAudioCtx();
+        musicGain.gain.setValueAtTime(musicGain.gain.value, ctx.currentTime);
+        musicGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + fade);
+        const g = musicGain; musicGain = null;
+        setTimeout(() => { try { g.disconnect(); } catch (e) { } }, (fade + 0.1) * 1000);
+      }
+    }
+
+
+    function spawnParticles(x, y, color, count = 16) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 1 + Math.random() * 5;
+        particles.push({
+          x, y,
+          vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+          life: 1, decay: 0.025 + Math.random() * 0.03,
+          size: 2 + Math.random() * 4, color
+        });
+      }
+    }
+
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vy += 0.12;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    //  AI Logic
+    // ══════════════════════════════════════════════
+    function updateAI() {
+      const cfg = AI_CONFIG[difficulty];
+
+      // Predict where the ball will be when it reaches the AI paddle X position
+      // Only track when ball moves towards AI (positive vx)
+      if (ball.vx > 0) {
+        // How many frames until ball reaches paddle2 x?
+        const frames = (paddle2.x - ball.x) / ball.vx;
+        // Simulate ball Y trajectory with wall bounces
+        let simY = ball.y;
+        let simVY = ball.vy;
+        for (let f = 0; f < frames * cfg.lookahead; f++) {
+          simY += simVY;
+          if (simY - BALL_R <= 0) { simY = BALL_R; simVY *= -1; }
+          if (simY + BALL_R >= H) { simY = H - BALL_R; simVY *= -1; }
+        }
+        // Update target smoothly with some random error
+        const newTarget = simY + aiError;
+        aiTargetY += (newTarget - aiTargetY) * 0.08;
+      } else {
+        // Ball moving away — drift AI back to center lazily
+        aiTargetY += (H / 2 - aiTargetY) * 0.02;
+      }
+
+      // Occasionally recalculate error to make AI feel human
+      if (Math.random() < 0.012) {
+        aiError = (Math.random() - 0.5) * cfg.error;
+      }
+
+      // Move paddle towards target
+      const paddleCenter = paddle2.y + PADDLE_H / 2;
+      const diff = aiTargetY - paddleCenter;
+      const move = Math.sign(diff) * Math.min(Math.abs(diff), cfg.speed);
+      paddle2.y = Math.max(0, Math.min(H - PADDLE_H, paddle2.y + move));
+    }
+
+    // ══════════════════════════════════════════════
+    //  Physics
+    // ══════════════════════════════════════════════
+    function movePaddles() {
+      // Player 1 always keyboard controlled
+      if (keys['KeyW']) paddle1.y = Math.max(0, paddle1.y - PADDLE_SPEED);
+      if (keys['KeyS']) paddle1.y = Math.min(H - PADDLE_H, paddle1.y + PADDLE_SPEED);
+
+      if (gameMode === 'single') {
+        updateAI();
+      } else {
+        if (keys['ArrowUp']) paddle2.y = Math.max(0, paddle2.y - PADDLE_SPEED);
+        if (keys['ArrowDown']) paddle2.y = Math.min(H - PADDLE_H, paddle2.y + PADDLE_SPEED);
+      }
+    }
+
+    function moveBall() {
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 18) ball.trail.shift();
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (ball.y - BALL_R <= 0) {
+        ball.y = BALL_R; ball.vy *= -1;
+        spawnParticles(ball.x, ball.y, '#ffffff', 6);
+        soundWall();
+      }
+      if (ball.y + BALL_R >= H) {
+        ball.y = H - BALL_R; ball.vy *= -1;
+        spawnParticles(ball.x, ball.y, '#ffffff', 6);
+        soundWall();
+      }
+
+      if (collidesWithPaddle(ball, paddle1)) {
+        ball.x = paddle1.x + PADDLE_W + BALL_R;
+        handlePaddleHit(ball, paddle1);
+        spawnParticles(ball.x, ball.y, '#00d4ff', 18);
+        soundPaddleHit();
+      }
+      if (collidesWithPaddle(ball, paddle2)) {
+        ball.x = paddle2.x - BALL_R;
+        handlePaddleHit(ball, paddle2);
+        spawnParticles(ball.x, ball.y, paddle2.color, 18);
+        soundPaddleHit();
+      }
+
+      if (ball.x - BALL_R < 0) { addScore(1); return; }
+      if (ball.x + BALL_R > W) { addScore(0); return; }
+    }
+
+    function collidesWithPaddle(b, pad) {
+      return b.x - BALL_R < pad.x + pad.w &&
+        b.x + BALL_R > pad.x &&
+        b.y - BALL_R < pad.y + pad.h &&
+        b.y + BALL_R > pad.y;
+    }
+
+    function handlePaddleHit(b, pad) {
+      const rel = (b.y - (pad.y + pad.h / 2)) / (pad.h / 2);
+      const angle = rel * (Math.PI / 3.5);
+      const dir = b.vx > 0 ? -1 : 1;
+
+      b.hitCount++;
+
+      // Accelerate on every 2nd hit
+      if (b.hitCount % 2 === 0) {
+        const prevSpeed = b.speed;
+        b.speed = Math.min(b.speed + BALL_ACCEL_STEP, BALL_SPEED_MAX);
+        // Visual flash: gold particles burst at ball position
+        if (b.speed > prevSpeed) {
+          spawnParticles(b.x, b.y, '#ffd700', 24);
+        }
+      }
+
+      b.vx = dir * Math.cos(angle) * b.speed;
+      b.vy = Math.sin(angle) * b.speed;
+    }
+
+    function addScore(idx) {
+      // Immediately freeze the ball at center so it can't trigger
+      // addScore again during the 600ms delay before next serve
+      ball.vx = 0; ball.vy = 0;
+      ball.x = W / 2; ball.y = H / 2;
+      ball.trail = [];
+
+      soundScore();
+      scores[idx]++;
+      const el = idx === 0 ? scoreLeftEl : scoreRightEl;
+      el.textContent = scores[idx];
+      el.classList.add('pop');
+      setTimeout(() => el.classList.remove('pop'), 200);
+
+      if (scores[idx] >= WIN_SCORE) { endGame(idx); return; }
+      setTimeout(() => {
+        ball = makeBall();
+        ball.vx = idx === 0 ? BALL_SPEED_INIT : -BALL_SPEED_INIT;
+      }, 600);
+    }
+
+    // ══════════════════════════════════════════════
+    //  Rendering
+    // ══════════════════════════════════════════════
+    function clearCanvas() {
+      const bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, '#060614');
+      bg.addColorStop(0.5, '#0d0d2b');
+      bg.addColorStop(1, '#060614');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function drawNet() {
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([28, 8]);
+      ctx.beginPath();
+      ctx.moveTo(W / 2, 0);
+      ctx.lineTo(W / 2, H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawPaddle(pad) {
+      ctx.save();
+      ctx.shadowColor = pad.color;
+      ctx.shadowBlur = 28;
+      const g = ctx.createLinearGradient(pad.x, pad.y, pad.x, pad.y + pad.h);
+      g.addColorStop(0, pad.color + 'cc');
+      g.addColorStop(0.5, pad.color);
+      g.addColorStop(1, pad.color + 'cc');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(pad.x, pad.y, pad.w, pad.h, 6);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawBall() {
+      for (let i = 0; i < ball.trail.length; i++) {
+        const t = ball.trail[i];
+        const alpha = (i / ball.trail.length) * 0.4;
+        const r = BALL_R * (i / ball.trail.length) * 0.85;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#00d4ff';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 30;
+      const bg = ctx.createRadialGradient(ball.x - 3, ball.y - 3, 1, ball.x, ball.y, BALL_R);
+      bg.addColorStop(0, '#ffffff');
+      bg.addColorStop(1, '#a0e8ff');
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function render() {
+      clearCanvas();
+      drawNet();
+      drawParticles();
+      drawPaddle(paddle1);
+      drawPaddle(paddle2);
+      drawBall();
+    }
+
+    // ══════════════════════════════════════════════
+    //  Game loop
+    // ══════════════════════════════════════════════
+    function loop() {
+      if (state !== 'playing') return;
+      movePaddles();
+      moveBall();
+      updateParticles();
+      render();
+      animId = requestAnimationFrame(loop);
+    }
+
+    // ══════════════════════════════════════════════
+    //  State transitions
+    // ══════════════════════════════════════════════
+    function updateUI() {
+      if (gameMode === 'single') {
+        labelLeft.textContent = 'Игрок 1';
+        labelRight.textContent = 'Компьютер';
+        labelRight.classList.add('ai');
+        scoreRightEl.classList.add('ai');
+        controlsBar.innerHTML =
+          `<span><kbd>W</kbd><kbd>S</kbd> — Игрок 1</span>
+       <span><kbd>P</kbd> / <kbd>Esc</kbd> — Пауза</span>
+       <span>🤖 Компьютер</span>`;
+      } else {
+        labelLeft.textContent = 'Игрок 1';
+        labelRight.textContent = 'Игрок 2';
+        labelRight.classList.remove('ai');
+        scoreRightEl.classList.remove('ai');
+        controlsBar.innerHTML =
+          `<span><kbd>W</kbd><kbd>S</kbd> — Игрок 1</span>
+       <span><kbd>P</kbd> / <kbd>Esc</kbd> — Пауза</span>
+       <span><kbd>↑</kbd><kbd>↓</kbd> — Игрок 2</span>`;
+      }
+      scoreLeftEl.textContent = '0';
+      scoreRightEl.textContent = '0';
+    }
+
+    function startGame() {
+      scores = [0, 0];
+      updateUI();
+      initGame();
+      menuScreen.classList.add('hidden');
+      winScreen.classList.add('hidden');
+      inGameBar.classList.remove('hidden');
+      volWrap.classList.remove('hidden');
+      state = 'playing';
+      stopMusic(0); startMusic();
+      loop();
+    }
+
+    function restartGame() {
+      cancelAnimationFrame(animId);
+      scores = [0, 0];
+      updateUI();
+      initGame();
+      winScreen.classList.add('hidden');
+      pauseScreen.classList.add('hidden');
+      inGameBar.classList.remove('hidden');
+      volWrap.classList.remove('hidden');
+      state = 'playing';
+      stopMusic(0); startMusic();
+      loop();
+    }
+
+    function goMenu() {
+      cancelAnimationFrame(animId);
+      stopMusic();
+      state = 'menu';
+      winScreen.classList.add('hidden');
+      pauseScreen.classList.add('hidden');
+      inGameBar.classList.add('hidden');
+      volWrap.classList.add('hidden');
+      menuScreen.classList.remove('hidden');
+    }
+
+    function pause() {
+      state = 'paused';
+      cancelAnimationFrame(animId);
+      stopMusic();
+      pauseScreen.classList.remove('hidden');
+    }
+
+    function resume() {
+      state = 'playing';
+      pauseScreen.classList.add('hidden');
+      startMusic();
+      loop();
+    }
+
+    function endGame(winner) {
+      state = 'win';
+      cancelAnimationFrame(animId);
+      const isAI = gameMode === 'single' && winner === 1;
+      if (gameMode === 'single') {
+        winMessage.textContent = winner === 0 ? '🏆 ВЫ ПОБЕДИЛИ!' : '🤖 КОМПЬЮТЕР ПОБЕДИЛ';
+      } else {
+        winMessage.textContent = `ИГРОК ${winner + 1} ПОБЕДИЛ!`;
+      }
+      winSub.textContent = `Счёт: ${scores[0]} : ${scores[1]}`;
+      winScreen.classList.remove('hidden');
+      inGameBar.classList.add('hidden');
+      volWrap.classList.add('hidden');
+      stopMusic();
+      // Sound: win jingle for human player, lose jingle if AI won
+      if (gameMode === 'single') {
+        if (winner === 0) soundWin(); else soundLose();
+      } else {
+        soundWin();
+      }
+      const color = winner === 0 ? '#00d4ff' : '#ff006e';
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+          spawnParticles(W / 2, H / 2, color, 30);
+          updateParticles();
+          render();
+        }, i * 120);
+      }
+    }
+
+    // Initial render
+    initGame();
+    render();
+  </script>
+</body>
+
+</html>
