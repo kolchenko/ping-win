@@ -4,6 +4,8 @@
 
 ![Preview](https://img.shields.io/badge/platform-browser-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
+Играть: https://kolchenko.github.io/ping-win
+
 ## Возможности
 
 - **Два режима:** один игрок против ИИ и два игрока на одной клавиатуре
